@@ -1,38 +1,55 @@
-.App {
-  text-align: center;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+:root {
+  --text-center: center;
+  --h1: 64px;
+  --h2: 48px;
+  --h3: 32px;
+  --h4: 16px;
+  --header-color: rgba(81, 51, 126, 0.8);
+  --api-cell-color: rgba(0,0,0,0.8);
+  --database-cell-color: rgba(0,0,0,0.5);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.main-container {
+  text-align: var(--text-center, center);
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.header-container {
+  background-color: var(--header-color, purple);
+  height: 20vh;
+}
+
+.flex-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  width: 100%;
+  height: 80vh;
 }
 
-.App-link {
-  color: #61dafb;
+.api-container {
+  background-color: var(--api-cell-color, black);
+  width: 60%;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.database-container {
+  background-color: var(--database-cell-color, blue);
+  width: 40%;
+}
+
+h1 {
+  font-size: var(--h1, 64px);
+}
+h2 {
+  margin: 0 auto;
+  font-size: var(--h2, 48px);
+}
+h3 {
+  font-size: var(--h3, 32px);
+}
+h4 {
+  font-size: var(--h4, 16px);
 }

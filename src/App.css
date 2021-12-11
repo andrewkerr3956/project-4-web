@@ -11,8 +11,22 @@ html, body {
   --h3: 32px;
   --h4: 16px;
   --header-color: rgba(81, 51, 126, 0.8);
-  --api-cell-color: rgba(0,0,0,0.8);
-  --database-cell-color: rgba(0,0,0,0.5);
+  --api-cell-color: rgba(35,145,20,0.4);
+  --database-cell-color: rgba(15,40,165,0.4);
+}
+
+.small-screen-warning {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  .small-screen-warning {
+    display: block ;
+  }
+  .api-container,.database-container,.flex-container,.header-container,.main-container,.search-bar,.search-btn,.stocks-section {
+    display: none;
+  }
+
 }
 
 .main-container {
@@ -21,6 +35,7 @@ html, body {
 
 .header-container {
   background-color: var(--header-color, purple);
+  margin: 0 auto;
   height: 20vh;
 }
 
@@ -33,6 +48,35 @@ html, body {
 .api-container {
   background-color: var(--api-cell-color, black);
   width: 60%;
+  text-align: left;
+}
+
+.search-bar {
+  padding: 10px;
+  border-radius: 5px;
+  width: 30%;
+  margin-top: 10px;
+}
+
+.search-btn {
+  border-radius: 50%;
+  width: 4.5%;
+  margin-left: 10px;
+  margin-top: 10px;
+}
+
+@media screen and (max-width: 1076px) {
+    .search-btn {
+      width: 10%;
+    }
+}
+
+.stocks-section {
+  margin-top: 10%;
+  width: 80%;
+  justify-content: center;
+  background-color: bisque;
+  border: 2px solid black;
 }
 
 .database-container {

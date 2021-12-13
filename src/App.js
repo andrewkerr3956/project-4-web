@@ -17,7 +17,7 @@ const ApiComponent = () => {
       </div>
       <section name="stocks-section">
         <div className={"stocks-container"}>
-
+          
         </div>
       </section>
 
@@ -28,7 +28,13 @@ const ApiComponent = () => {
 const DbComponent = () => {
   return (
     <>
-      
+      <h3>Portfolio</h3>
+      <div className={'grid-container'}>
+            <div className={'grid-header'}><strong>Stock</strong></div>
+            <div className={'grid-header'}><strong>Quantity</strong></div>
+            <div className={'grid-header'}><strong>Value</strong></div>
+            <div className={'grid-header'}><strong>Buy/Sell</strong></div>
+      </div>
     </>
   )
 }

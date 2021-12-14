@@ -2,6 +2,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 :root {
@@ -29,6 +30,40 @@ html, body {
   height: 20vh;
 }
 
+.login-container {
+  margin-top: -12px;
+}
+
+.login-container button {
+  padding: 5px;
+  border-radius: 10%;
+  color: white;
+}
+
+.login-box {
+  width: 50%;
+  height: 20vh;
+  margin: 5px auto;
+  position: relative;
+  background-color: white;
+  border: 2px solid black;
+  z-index: 10;
+}
+
+.login-box input{
+  display: block;
+  margin: 15px auto;
+}
+
+.login-box button {
+  display: block;
+  margin: 15px auto;
+  padding: 4px;
+  background-color: lightskyblue;
+  color: white;
+  text-align: var(--text-center, center);
+}
+
 .flex-container {
   display: flex;
   width: 100%;
@@ -40,12 +75,17 @@ html, body {
   height: 40vh;
   justify-content: center;
   grid-template-columns: repeat(4, 20%);
-  grid-template-rows: 10%;
+  grid-auto-rows: 10%;
 }
 
 .grid-header {
   border: 1px solid black;
   background-color: lightgray;
+}
+
+.grid-item {
+  border: 1px solid black;
+  background-color: whitesmoke;
 }
 
 .api-container {

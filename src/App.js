@@ -9,11 +9,18 @@ const ApiComponent = () => {
     let newSearch = event.target.value;
     setSearch(newSearch)
   }
+  const fetchSearch = async() => {
+    let symbol = search;
+    console.log(`http://localhost:3000/api/search/${symbol}`)
+    let data = await fetch(`http://localhost:3000/api/search/${symbol}`);
+    data = await data.json();
+    console.log(data);
+  }
   return (
     <>
       <div style={{display: "flex", justifyContent: "center"}}>
         <input type="text" className={"search-bar"} name="search" value={search} onChange={handleSearch} placeholder={"Search..."}/>
-        <button className={"search-btn"}><FontAwesomeIcon icon={faSearch} /></button>
+        <button className={"search-btn"} onClick={fetchSearch}><FontAwesomeIcon icon={faSearch} /></button>
       </div>
       <section name="stocks-section">
         <div className={"stocks-container"}>
@@ -40,14 +47,62 @@ const DbComponent = () => {
 }
 
 function App() {
+  const [loginDisplay, setLoginDisplay] = useState(false);
+  const [registerDisplay, setRegisterDisplay] = useState(false);
+
+  const loginBox = () => { 
+    if(registerDisplay) {
+      setRegisterDisplay(false);
+    }
+    let newDisplay = !loginDisplay;
+    setLoginDisplay(newDisplay);
+  }
+
+  const registerBox = () => {
+    if(loginDisplay) {
+      setLoginDisplay(false);
+    }
+    let newDisplay = !registerDisplay;
+    setRegisterDisplay(newDisplay);
+  }
+
   return (
     <div className={"main-container"}>
       {/*In case the screen is too small */}
       <h3 className={"small-screen-warning"}>The app cannot work on this device.</h3>
       <header>
         <div className={"header-container"}>
+          {sessionStorage.username && ((sessionStorage) => {
+            const userName = sessionStorage.username;
+            const id = sessionStorage.userid;
+            return (
+              <div key={id}>Welcome, {userName}!</div>
+            )
+          })}
           <h2>Paper Trader</h2>
           <h4><em>We make buying stocks as easy as it should be.</em></h4>
+          <div className={'login-container'}>
+            <button onClick={loginBox} style={{backgroundColor: "blue"}}>Login</button>
+            <button onClick={registerBox} style={{backgroundColor: "green"}}>Register</button>
+            {loginDisplay && (
+                <div className={"login-box"}>
+                  <form>
+                    <input type="text" placeholder={"Enter username..."} required />
+                    <input type="password" placeholder={"Enter password..."} required />
+                    <button>Login</button>
+                  </form>
+                </div>
+            )}
+            {registerDisplay && (
+                <div className={"login-box"}>
+                  <form>
+                    <input type="text" placeholder={"Enter username..."} required />
+                    <input type="password" placeholder={"Enter password..."} required />
+                    <button style={{backgroundColor: 'lightseagreen'}}>Register</button>
+                  </form>
+                </div>
+            )}
+          </div>
         </div>
       </header>
       <main>

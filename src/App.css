@@ -132,6 +132,13 @@ html, body {
   border: 2px solid black;
 }
 
+#yahoo-info {
+  font-weight: bolder;
+  font-size: 20px;
+  text-align: center;
+  margin-top: 15px;
+}
+
 .database-container {
   background-color: var(--database-cell-color, blue);
   width: 40%;

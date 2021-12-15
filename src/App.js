@@ -49,6 +49,8 @@ const DbComponent = () => {
 function App() {
   const [loginDisplay, setLoginDisplay] = useState(false);
   const [registerDisplay, setRegisterDisplay] = useState(false);
+  const [username, setUserName] = useState("");
+  const [password, setPassword] = useState("");
 
   const loginBox = () => { 
     if(registerDisplay) {
@@ -64,6 +66,41 @@ function App() {
     }
     let newDisplay = !registerDisplay;
     setRegisterDisplay(newDisplay);
+  }
+
+  const handleUsername = (event) => {
+    let newUsername = event.target.value;
+    setUserName(newUsername);
+  }
+
+  const handlePassword = (event) => {
+    let newPassword = event.target.value;
+    setPassword(newPassword);
+  }
+
+  const handleLogin = async() => {
+    let success = await fetch('http://localhost:3000/api/portfolio/', { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({username: username, password: password})
+      })
+    success = await success.json();
+    console.log(success);
+  }
+
+
+  const handleRegister = async() => {
+    let success = await fetch('http://localhost:3000/api/portfolio/', { 
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({username: username, password: password})
+      })
+    success = await success.json();
+    console.log(success);
   }
 
   return (
@@ -87,18 +124,18 @@ function App() {
             {loginDisplay && (
                 <div className={"login-box"}>
                   <form>
-                    <input type="text" placeholder={"Enter username..."} required />
-                    <input type="password" placeholder={"Enter password..."} required />
-                    <button>Login</button>
+                    <input type="text" value={username} onChange={handleUsername} placeholder={"Enter username..."} required />
+                    <input type="password" value={password} onChange={handlePassword} placeholder={"Enter password..."} required />
+                    <button onClick={handleLogin}>Login</button>
                   </form>
                 </div>
             )}
             {registerDisplay && (
                 <div className={"login-box"}>
                   <form>
-                    <input type="text" placeholder={"Enter username..."} required />
-                    <input type="password" placeholder={"Enter password..."} required />
-                    <button style={{backgroundColor: 'lightseagreen'}}>Register</button>
+                    <input type="text" value={username} onChange={handleUsername} placeholder={"Enter username..."} required />
+                    <input type="password" value={password} onChange={handlePassword} placeholder={"Enter password..."} required />
+                    <button onClick={handleRegister} style={{backgroundColor: 'lightseagreen'}}>Register</button>
                   </form>
                 </div>
             )}

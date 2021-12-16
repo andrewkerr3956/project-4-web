@@ -10,9 +10,11 @@ const ApiComponent = () => {
     setSearch(newSearch)
   }
   const handleBuy = async(symbol, value) => {
-    let portfolioCollection = sessionStorage.getItem("collection");
-    portfolioCollection.push(...portfolioCollection, [{symbol: symbol, quantity: 1, value: value }]);  
-    sessionStorage.setItem("collection", portfolioCollection);
+    if(sessionStorage.length > 0) {
+      let portfolioCollection = sessionStorage.getItem("collection");
+      portfolioCollection.push(...portfolioCollection, [symbol, 1, value]);  
+      sessionStorage.setItem("collection", portfolioCollection);
+    }
   } 
 
   const fetchSearch = async () => {
@@ -31,7 +33,8 @@ const ApiComponent = () => {
       <span>$${value}</span>
     </span>
     <br />
-    <button onClick={handleBuy(symbol, value)}>Buy</button>`
+    ${<button onClick={handleBuy(symbol, value)}>Buy</button>}`
+
     }
   }
   return (
@@ -51,12 +54,8 @@ const ApiComponent = () => {
 }
 
 const DbComponent = () => {
-  const [portfolio, setPortfolio] = useState([]);
-  window.onload = async() => {
-    if(sessionStorage.length > 0) {
-      setPortfolio(sessionStorage.getItem("collection"));
-    }
-  }
+  const [portfolio, setPortfolio] = useState([sessionStorage.getItem("collection")]);
+  console.log(portfolio);
   return (
     <>
       <h3>Portfolio</h3>
@@ -65,9 +64,18 @@ const DbComponent = () => {
         <div className={'grid-header'}><strong>Quantity</strong></div>
         <div className={'grid-header'}><strong>Value</strong></div>
         <div className={'grid-header'}><strong>Buy/Sell</strong></div>
-        {portfolio && portfolio.length > 0 && portfolio.map( (item, idx) => {
+        {portfolio[0] != null && portfolio.length > 0  && portfolio.map( (item, idx) => {
+          let newdata = item.split(',')
           return(
-            <div key={idx} className={'grid-item'}>{item}</div>
+            <>
+              <div key={idx} className={'grid-item'}>{newdata[0]}</div>
+              <div className={'grid-item'}>{newdata[1]}</div>
+              <div className={'grid-item'}>{newdata[2]}</div>
+              <div className={'grid-item'}>
+                <button>Buy</button>
+                <button>Sell</button>
+              </div>
+            </>
           )
         })}
       </div>
@@ -122,6 +130,7 @@ function App() {
       return alert("Invalid login, please try again.");
     }
     else {
+      console.log(login.results[0]);
       sessionStorage.setItem("userid", login.results[0].userid);
       sessionStorage.setItem("user", login.results[0].username);
       sessionStorage.setItem("portfolioid", login.results[0].portfolioid);
@@ -132,8 +141,7 @@ function App() {
   }
 
   const handleLogout = async (event) => {
-    sessionStorage.removeItem("userid");
-    sessionStorage.removeItem("user");
+    sessionStorage.clear();
     window.location.reload();
   }
 

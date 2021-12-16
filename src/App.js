@@ -9,6 +9,12 @@ const ApiComponent = () => {
     let newSearch = event.target.value;
     setSearch(newSearch)
   }
+  const handleBuy = async(symbol, value) => {
+    let portfolioCollection = sessionStorage.getItem("collection");
+    portfolioCollection.push(...portfolioCollection, [{symbol: symbol, quantity: 1, value: value }]);  
+    sessionStorage.setItem("collection", portfolioCollection);
+  } 
+
   const fetchSearch = async () => {
     let symbol = search;
     console.log(`http://localhost:3000/api/search/${symbol}`)
@@ -18,11 +24,14 @@ const ApiComponent = () => {
       return alert("Data for this symbol could not be found.");
     }
     else {
+      let value = data.data.price.toFixed(2);
       document.getElementById("yahoo-info").innerHTML =
         `<span>
       <span>${symbol}</span>
-      <span>$${data.data.price.toFixed(2)}</span>
-    </span>`
+      <span>$${value}</span>
+    </span>
+    <br />
+    <button onClick={handleBuy(symbol, value)}>Buy</button>`
     }
   }
   return (
@@ -34,7 +43,7 @@ const ApiComponent = () => {
       <section name="stocks-section">
         <div className={"stocks-container"}>
           <div id="yahoo-info"></div>
-        </div>  
+        </div>
       </section>
 
     </>
@@ -42,6 +51,12 @@ const ApiComponent = () => {
 }
 
 const DbComponent = () => {
+  const [portfolio, setPortfolio] = useState([]);
+  window.onload = async() => {
+    if(sessionStorage.length > 0) {
+      setPortfolio(sessionStorage.getItem("collection"));
+    }
+  }
   return (
     <>
       <h3>Portfolio</h3>
@@ -50,6 +65,11 @@ const DbComponent = () => {
         <div className={'grid-header'}><strong>Quantity</strong></div>
         <div className={'grid-header'}><strong>Value</strong></div>
         <div className={'grid-header'}><strong>Buy/Sell</strong></div>
+        {portfolio && portfolio.length > 0 && portfolio.map( (item, idx) => {
+          return(
+            <div key={idx} className={'grid-item'}>{item}</div>
+          )
+        })}
       </div>
     </>
   )
@@ -104,6 +124,9 @@ function App() {
     else {
       sessionStorage.setItem("userid", login.results[0].userid);
       sessionStorage.setItem("user", login.results[0].username);
+      sessionStorage.setItem("portfolioid", login.results[0].portfolioid);
+      sessionStorage.setItem("collection", login.results[0].collection);
+      sessionStorage.setItem("wallet", login.results[0].wallet);
       window.location.reload();
     }
   }
@@ -125,11 +148,12 @@ function App() {
       body: JSON.stringify({ username: username, password: password })
     });
     register = await register.json();
-    if(register.error) {
+    if (register.error) {
       return alert("Username already exists!");
     }
     else {
-      window.location.reload();
+      setUserName("");
+      setPassword("");
     }
   }
 

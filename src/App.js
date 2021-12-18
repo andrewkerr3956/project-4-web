@@ -1,21 +1,27 @@
 import './App.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const ApiComponent = () => {
   const [search, setSearch] = useState("");
+  const [stockData, setStockData] = useState({});
+
   const handleSearch = (event) => {
     let newSearch = event.target.value;
     setSearch(newSearch)
   }
-  const handleBuy = async(symbol, value) => {
-    if(sessionStorage.length > 0) {
-      let portfolioCollection = sessionStorage.getItem("collection");
-      portfolioCollection.push(...portfolioCollection, [symbol, 1, value]);  
-      sessionStorage.setItem("collection", portfolioCollection);
+
+  const handleBuy = () => {
+    console.log("Activated handle buy!")
+    if (sessionStorage.length > 0) {
+      let portfolioCollection = JSON.parse(sessionStorage.getItem("collection"));
+      console.log("portfolioCollection ", portfolioCollection);
+      portfolioCollection.push([stockData.symbol, 1, parseFloat(stockData.value)]);
+      sessionStorage.setItem("collection", [JSON.stringify(portfolioCollection)]);
+      setStockData({});
     }
-  } 
+  }
 
   const fetchSearch = async () => {
     let symbol = search;
@@ -26,15 +32,7 @@ const ApiComponent = () => {
       return alert("Data for this symbol could not be found.");
     }
     else {
-      let value = data.data.price.toFixed(2);
-      document.getElementById("yahoo-info").innerHTML =
-        `<span>
-      <span>${symbol}</span>
-      <span>$${value}</span>
-    </span>
-    <br />
-    ${<button onClick={handleBuy(symbol, value)}>Buy</button>}`
-
+      setStockData({ symbol: symbol, value: data.data.price.toFixed(2) });
     }
   }
   return (
@@ -45,7 +43,18 @@ const ApiComponent = () => {
       </div>
       <section name="stocks-section">
         <div className={"stocks-container"}>
-          <div id="yahoo-info"></div>
+          <div id="yahoo-info">
+          </div>
+          {stockData.symbol && stockData.value && (
+            <div style={{textAlign: "center"}}>
+              <strong>
+                <span>{stockData.symbol}</span>
+                <span style={{marginLeft: "10px"}}>${stockData.value}</span>
+              </strong>
+              <br />
+              <button onClick={handleBuy}>Buy</button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -54,31 +63,92 @@ const ApiComponent = () => {
 }
 
 const DbComponent = () => {
-  const [portfolio, setPortfolio] = useState([sessionStorage.getItem("collection")]);
-  console.log(portfolio);
+  const [portfolio, setPortfolio] = useState([]);
+  const [wallet, setWallet] = useState(0);
+
+  const fetchPortfolio = async () => {
+    let fetchPortfolio = await fetch(`http://localhost:3000/api/portfolio/${sessionStorage.getItem("userid")}`);
+    fetchPortfolio = await fetchPortfolio.json();
+    let newPortfolio = [];
+    if(fetchPortfolio.results[0].collection != null) {
+    if(fetchPortfolio.results[0].collection.length > sessionStorage.getItem("collection").length) {
+      fetchPortfolio.results[0].collection.map((item) => {
+        return newPortfolio.push(item);
+      });
+      console.log("newPortfolio", newPortfolio)
+      setPortfolio(newPortfolio);
+      setWallet(fetchPortfolio.results[0].wallet);
+    }
+    else {
+      let savedSessionPortfolio = JSON.parse(sessionStorage.getItem("collection"));
+      savedSessionPortfolio.map((item) => {
+        return newPortfolio.push(item);
+      });
+    }
+    console.log("newPortfolio", newPortfolio)
+    setPortfolio(newPortfolio);
+    setWallet(fetchPortfolio.results[0].wallet);
+  }
+  else {
+    setWallet(fetchPortfolio.results[0].wallet);
+    console.log("No portfolio data fetched");
+  }
+  
+  }
+
+  const savePortfolio = async () => {
+    let portfolioid = sessionStorage.getItem("portfolioid")
+    let saveNewPortfolio = await fetch("http://localhost:3000/api/portfolio/save", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ portfolioId: portfolioid, portfolioData: portfolio })
+
+    });
+    saveNewPortfolio = await saveNewPortfolio.json();
+    if (saveNewPortfolio.error) {
+      return alert("Your portfolio failed to save. Nothing changed.");
+    }
+    else {
+      return alert("Your portfolio was successfully saved!");
+    }
+  }
+
+  useEffect(() => {
+    if (sessionStorage.length > 0) {
+      fetchPortfolio();
+    }
+  }, []);
+
   return (
     <>
+      {sessionStorage.length > 0 && (
+        <h4>Remaining Balance: ${wallet}</h4>
+      )}
       <h3>Portfolio</h3>
+      {portfolio[0] != null && (
+        <button onClick={savePortfolio}>Save Portfolio</button>
+      )}
       <div className={'grid-container'}>
         <div className={'grid-header'}><strong>Stock</strong></div>
         <div className={'grid-header'}><strong>Quantity</strong></div>
         <div className={'grid-header'}><strong>Value</strong></div>
         <div className={'grid-header'}><strong>Buy/Sell</strong></div>
-        {portfolio[0] != null && portfolio.length > 0  && portfolio.map( (item, idx) => {
-          let newdata = item.split(',')
-          return(
+        {portfolio[0] != null && portfolio.length > 0 && portfolio.map((item, idx) => {
+          return (
             <>
-              <div key={idx} className={'grid-item'}>{newdata[0]}</div>
-              <div className={'grid-item'}>{newdata[1]}</div>
-              <div className={'grid-item'}>{newdata[2]}</div>
+              <div className={'grid-item'}>{item[0]}</div>
+              <div className={'grid-item'}>{item[1]}</div>
+              <div className={'grid-item'}>${item[2]}</div>
               <div className={'grid-item'}>
-                <button>Buy</button>
-                <button>Sell</button>
+                <input name="buy-sell-stock" key={idx} type="radio"></input>
               </div>
             </>
           )
         })}
       </div>
+
     </>
   )
 }
@@ -134,7 +204,12 @@ function App() {
       sessionStorage.setItem("userid", login.results[0].userid);
       sessionStorage.setItem("user", login.results[0].username);
       sessionStorage.setItem("portfolioid", login.results[0].portfolioid);
-      sessionStorage.setItem("collection", login.results[0].collection);
+      // Iterate over the portfolio collection
+      let storedCollection = [];
+      login.results[0].collection.map((item) => {
+        return storedCollection.push(item);
+      })
+      sessionStorage.setItem("collection", JSON.stringify(storedCollection));
       sessionStorage.setItem("wallet", login.results[0].wallet);
       window.location.reload();
     }

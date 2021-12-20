@@ -142,6 +142,7 @@ html, body {
 .database-container {
   background-color: var(--database-cell-color, blue);
   width: 40%;
+  overflow-y: auto;
 }
 
 h1 {

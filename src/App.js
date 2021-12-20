@@ -3,9 +3,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 
+
 const ApiComponent = () => {
   const [search, setSearch] = useState("");
   const [stockData, setStockData] = useState({});
+  const [newPortfolio, setNewPortfolio] = useState([]);
+  const [newWallet, setNewWallet] = useState(0);
+
+  useEffect(() => {
+    sessionStorage.setItem("collection", [JSON.stringify(newPortfolio)]);
+    sessionStorage.setItem("wallet", newWallet);
+  }, [newPortfolio, newWallet]);
 
   const handleSearch = (event) => {
     let newSearch = event.target.value;
@@ -15,10 +23,12 @@ const ApiComponent = () => {
   const handleBuy = () => {
     console.log("Activated handle buy!")
     if (sessionStorage.length > 0) {
-      let portfolioCollection = JSON.parse(sessionStorage.getItem("collection"));
-      console.log("portfolioCollection ", portfolioCollection);
-      portfolioCollection.push([stockData.symbol, 1, parseFloat(stockData.value)]);
-      sessionStorage.setItem("collection", [JSON.stringify(portfolioCollection)]);
+      let portfolio = JSON.parse(sessionStorage.getItem("collection"));
+      console.log("portfolioCollection ", portfolio);
+      portfolio.push([stockData.symbol, 1, parseFloat(stockData.value)]);
+      setNewPortfolio(portfolio);
+      let wallet = parseFloat(sessionStorage.getItem("wallet")).toFixed(2) - parseFloat(stockData.value);
+      setNewWallet(wallet);
       setStockData({});
     }
   }
@@ -65,6 +75,22 @@ const ApiComponent = () => {
 const DbComponent = () => {
   const [portfolio, setPortfolio] = useState([]);
   const [wallet, setWallet] = useState(0);
+  const [selectedShare, setSelectedShare] = useState(0);
+
+  useEffect(() => {
+    if (sessionStorage.length > 0) {
+      fetchPortfolio();
+    }
+  }, []);
+
+  useEffect(() => {
+    if(sessionStorage.getItem("collection").length > portfolio.length) {
+      setPortfolio(JSON.parse(sessionStorage.getItem("collection")));
+    }
+    else {
+      console.log("This is useless")
+    }
+  }, []);
 
   const fetchPortfolio = async () => {
     let fetchPortfolio = await fetch(`http://localhost:3000/api/portfolio/${sessionStorage.getItem("userid")}`);
@@ -115,12 +141,6 @@ const DbComponent = () => {
     }
   }
 
-  useEffect(() => {
-    if (sessionStorage.length > 0) {
-      fetchPortfolio();
-    }
-  }, []);
-
   return (
     <>
       {sessionStorage.length > 0 && (
@@ -148,6 +168,15 @@ const DbComponent = () => {
           )
         })}
       </div>
+      {selectedShare !== 0 && (
+        <div>
+          <strong>Quantity</strong>
+          {/* Quantity will need to be built into here */}
+          <input type="number" min={0} max={0}></input>
+          <button>Buy</button>
+          <button>Sell</button>
+        </div>
+      )}
 
     </>
   )

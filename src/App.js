@@ -4,16 +4,9 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useState } from 'react';
 
 
-const ApiComponent = () => {
+const ApiComponent = (props) => {
   const [search, setSearch] = useState("");
   const [stockData, setStockData] = useState({});
-  const [newPortfolio, setNewPortfolio] = useState([]);
-  const [newWallet, setNewWallet] = useState(0);
-
-  useEffect(() => {
-    sessionStorage.setItem("collection", [JSON.stringify(newPortfolio)]);
-    sessionStorage.setItem("wallet", newWallet);
-  }, [newPortfolio, newWallet]);
 
   const handleSearch = (event) => {
     let newSearch = event.target.value;
@@ -23,13 +16,15 @@ const ApiComponent = () => {
   const handleBuy = () => {
     console.log("Activated handle buy!")
     if (sessionStorage.length > 0) {
-      let portfolio = JSON.parse(sessionStorage.getItem("collection"));
-      console.log("portfolioCollection ", portfolio);
-      portfolio.push([stockData.symbol, 1, parseFloat(stockData.value)]);
-      setNewPortfolio(portfolio);
-      let wallet = parseFloat(sessionStorage.getItem("wallet")).toFixed(2) - parseFloat(stockData.value);
-      setNewWallet(wallet);
-      setStockData({});
+      if (parseFloat(props.wallet) >= parseFloat(stockData.value)) {
+        let newWallet = parseFloat(props.wallet - stockData.value).toFixed(2);
+        props.setWallet(newWallet);
+        let oldPortfolio = props.portfolio;
+        console.log("portfolio props: ", props.portfolio)
+        oldPortfolio.push([stockData.symbol, 1, parseFloat(stockData.value).toFixed(2)]);
+        props.setPortfolio(oldPortfolio);
+        setStockData({});
+      }
     }
   }
 
@@ -56,10 +51,10 @@ const ApiComponent = () => {
           <div id="yahoo-info">
           </div>
           {stockData.symbol && stockData.value && (
-            <div style={{textAlign: "center"}}>
+            <div style={{ textAlign: "center" }}>
               <strong>
                 <span>{stockData.symbol}</span>
-                <span style={{marginLeft: "10px"}}>${stockData.value}</span>
+                <span style={{ marginLeft: "10px" }}>${stockData.value}</span>
               </strong>
               <br />
               <button onClick={handleBuy}>Buy</button>
@@ -72,54 +67,35 @@ const ApiComponent = () => {
   )
 }
 
-const DbComponent = () => {
-  const [portfolio, setPortfolio] = useState([]);
-  const [wallet, setWallet] = useState(0);
+const DbComponent = (props) => {
   const [selectedShare, setSelectedShare] = useState(0);
 
   useEffect(() => {
-    if (sessionStorage.length > 0) {
+    console.log(sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("collection")))
+    if (sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("collection"))) {
       fetchPortfolio();
-    }
-  }, []);
-
-  useEffect(() => {
-    if(sessionStorage.getItem("collection").length > portfolio.length) {
-      setPortfolio(JSON.parse(sessionStorage.getItem("collection")));
-    }
-    else {
-      console.log("This is useless")
     }
   }, []);
 
   const fetchPortfolio = async () => {
     let fetchPortfolio = await fetch(`http://localhost:3000/api/portfolio/${sessionStorage.getItem("userid")}`);
     fetchPortfolio = await fetchPortfolio.json();
-    let newPortfolio = [];
-    if(fetchPortfolio.results[0].collection != null) {
-    if(fetchPortfolio.results[0].collection.length > sessionStorage.getItem("collection").length) {
-      fetchPortfolio.results[0].collection.map((item) => {
-        return newPortfolio.push(item);
-      });
-      console.log("newPortfolio", newPortfolio)
-      setPortfolio(newPortfolio);
-      setWallet(fetchPortfolio.results[0].wallet);
+    if (!sessionStorage.getItem("collection")) {
+      if (fetchPortfolio.results[0].collection == null) {
+        props.setPortfolio([]);
+      }
+      else {
+        props.setPortfolio(fetchPortfolio.results[0].collection)
+      }
     }
-    else {
-      let savedSessionPortfolio = JSON.parse(sessionStorage.getItem("collection"));
-      savedSessionPortfolio.map((item) => {
-        return newPortfolio.push(item);
-      });
+    if (!sessionStorage.getItem("wallet")) {
+      if (fetchPortfolio.results[0].wallet == null) {
+        props.setWallet(3000);
+      }
+      else {
+        props.setWallet(fetchPortfolio.results[0].wallet)
+      }
     }
-    console.log("newPortfolio", newPortfolio)
-    setPortfolio(newPortfolio);
-    setWallet(fetchPortfolio.results[0].wallet);
-  }
-  else {
-    setWallet(fetchPortfolio.results[0].wallet);
-    console.log("No portfolio data fetched");
-  }
-  
   }
 
   const savePortfolio = async () => {
@@ -129,7 +105,7 @@ const DbComponent = () => {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ portfolioId: portfolioid, portfolioData: portfolio })
+      body: JSON.stringify({ portfolioId: portfolioid, portfolioData: props.portfolio, currentWallet: props.wallet })
 
     });
     saveNewPortfolio = await saveNewPortfolio.json();
@@ -144,10 +120,10 @@ const DbComponent = () => {
   return (
     <>
       {sessionStorage.length > 0 && (
-        <h4>Remaining Balance: ${wallet}</h4>
+        <h4>Remaining Balance: ${props.wallet}</h4>
       )}
       <h3>Portfolio</h3>
-      {portfolio[0] != null && (
+      {props.portfolio != null && props.portfolio.length > 0 && (
         <button onClick={savePortfolio}>Save Portfolio</button>
       )}
       <div className={'grid-container'}>
@@ -155,7 +131,7 @@ const DbComponent = () => {
         <div className={'grid-header'}><strong>Quantity</strong></div>
         <div className={'grid-header'}><strong>Value</strong></div>
         <div className={'grid-header'}><strong>Buy/Sell</strong></div>
-        {portfolio[0] != null && portfolio.length > 0 && portfolio.map((item, idx) => {
+        {props.portfolio != null && props.portfolio !== [] && props.portfolio.length > 0 && props.portfolio.map((item, idx) => {
           return (
             <>
               <div className={'grid-item'}>{item[0]}</div>
@@ -181,12 +157,26 @@ const DbComponent = () => {
     </>
   )
 }
-
 function App() {
   const [loginDisplay, setLoginDisplay] = useState(false);
   const [registerDisplay, setRegisterDisplay] = useState(false);
   const [username, setUserName] = useState("");
   const [password, setPassword] = useState("");
+  const [portfolio, setPortfolio] = useState(JSON.parse(sessionStorage.getItem("collection")) || []);
+  // Wallet state intializes at 3000 since that is the default set in the database.
+  const [wallet, setWallet] = useState(sessionStorage.getItem("wallet") || 3000);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("userid")) {
+      sessionStorage.setItem("collection", [JSON.stringify(portfolio)]);
+    }
+  }, [portfolio]);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("userid")) {
+      sessionStorage.setItem("wallet", wallet);
+    }
+  }, [wallet]);
 
   const loginBox = () => {
     if (registerDisplay) {
@@ -233,19 +223,22 @@ function App() {
       sessionStorage.setItem("userid", login.results[0].userid);
       sessionStorage.setItem("user", login.results[0].username);
       sessionStorage.setItem("portfolioid", login.results[0].portfolioid);
-      // Iterate over the portfolio collection
-      let storedCollection = [];
-      login.results[0].collection.map((item) => {
-        return storedCollection.push(item);
-      })
-      sessionStorage.setItem("collection", JSON.stringify(storedCollection));
-      sessionStorage.setItem("wallet", login.results[0].wallet);
+      // Check if collection is null
+      if (login.results[0].collection == null) {
+        setPortfolio([]);
+      }
+      else {
+        setPortfolio(login.results[0].collection);
+      }
+      setWallet(login.results[0].wallet);
       window.location.reload();
     }
   }
 
   const handleLogout = async (event) => {
     sessionStorage.clear();
+    setPortfolio([]);
+    setWallet(0);
     window.location.reload();
   }
 
@@ -313,10 +306,10 @@ function App() {
       <main>
         <div className={"flex-container"}>
           <div className={"api-container"}>
-            <ApiComponent />
+            <ApiComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} />
           </div>
           <div className={"database-container"}>
-            <DbComponent />
+            <DbComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} />
           </div>
         </div>
       </main>

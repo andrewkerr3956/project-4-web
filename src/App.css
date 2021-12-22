@@ -93,6 +93,7 @@ html, body {
   width: 60%;
   text-align: left;
   height: 80vh;
+  overflow-y: auto;
 }
 
 .search-bar {

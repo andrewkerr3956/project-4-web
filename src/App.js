@@ -7,20 +7,42 @@ import { useEffect, useState } from 'react';
 const ApiComponent = (props) => {
   const [search, setSearch] = useState("");
   const [stockData, setStockData] = useState({});
+  const [quantity, setQuantity] = useState(0);
 
   const handleSearch = (event) => {
     let newSearch = event.target.value;
     setSearch(newSearch)
   }
 
+  const handleQuantity = (event) => {
+    setQuantity(event.target.value);
+  }
+
   const handleBuy = () => {
     console.log("Activated handle buy!")
-    if (sessionStorage.length > 0) {
-      if (parseFloat(props.wallet) >= parseFloat(stockData.value)) {
-        let newWallet = parseFloat(props.wallet - stockData.value).toFixed(2);
-        props.setWallet(newWallet);
-        props.setPortfolio([...props.portfolio, [stockData.symbol, 1, parseFloat(stockData.value).toFixed(2)]]);
-        setStockData({});
+    if (sessionStorage.length > 0 && quantity > 0) {
+      let newWallet = parseFloat(props.wallet - (stockData.value * quantity)).toFixed(2);
+      let oldPortfolio = props.portfolio.map((item, idx) => {
+        if (item.includes(stockData.symbol)) {
+          return true;
+        }
+        else {
+          return false;
+        }
+      });
+      if (newWallet >= 0) {
+        console.log("oldportfolio check: ", oldPortfolio)
+        if (oldPortfolio.includes(true)) {
+          setQuantity(0)
+          return alert("This stock already exists in your portfolio! Buy more shares from your portfolio.");
+        }
+        else {
+          props.setWallet(newWallet);
+          props.setPortfolio([...props.portfolio, [stockData.symbol, quantity, parseFloat(stockData.value).toFixed(2)]]);
+          setQuantity(0)
+          setStockData({});
+        }
+
       }
     }
   }
@@ -35,8 +57,17 @@ const ApiComponent = (props) => {
     }
     else {
       setStockData({ symbol: symbol, value: data.data.price.toFixed(2) });
+      fetchChart(symbol);
     }
   }
+
+  const fetchChart = async (symbol) => {
+    let chart = await fetch(`http://localhost:3000/api/chart?symbol=${symbol}`);
+    chart = await chart.json();
+    document.getElementById("chart-img").setAttribute('src', chart.img);
+    
+  }
+
   return (
     <>
       <div style={{ display: "flex", justifyContent: "center" }}>
@@ -53,7 +84,12 @@ const ApiComponent = (props) => {
                 <span>{stockData.symbol}</span>
                 <span style={{ marginLeft: "10px" }}>${stockData.value}</span>
               </strong>
+              <div id="chart-container">
+                <img id="chart-img" alt="Stock Chart" />
+              </div>
               <br />
+              <div>Quantity</div> <br />
+              <input type="number" min={0} max={5} value={quantity} onChange={handleQuantity} /> <p />
               <button onClick={handleBuy}>Buy</button>
             </div>
           )}
@@ -65,7 +101,9 @@ const ApiComponent = (props) => {
 }
 
 const DbComponent = (props) => {
-  const [selectedShare, setSelectedShare] = useState(0);
+  /* selectedShare will have an inital state of -1, so it fails the conditional 
+  check since we don't want quantity displayed unless something is selected. */
+  const [selectedShare, setSelectedShare] = useState(-1);
   const [quantity, setQuantity] = useState(0);
 
   useEffect(() => {
@@ -73,6 +111,12 @@ const DbComponent = (props) => {
       fetchPortfolio();
     }
   }, []);
+
+  useEffect(() => {
+    if (selectedShare === -1) {
+      console.log(document.getElementsByName("buy-sell-portfolio").values)
+    }
+  }, [selectedShare])
 
   const fetchPortfolio = async () => {
     let fetchPortfolio = await fetch(`http://localhost:3000/api/portfolio/${sessionStorage.getItem("userid")}`);
@@ -93,6 +137,11 @@ const DbComponent = (props) => {
         props.setWallet(fetchPortfolio.results[0].wallet)
       }
     }
+  }
+
+  const resetPortfolio = () => {
+    props.setPortfolio([]);
+    props.setWallet(3000);
   }
 
   const savePortfolio = async () => {
@@ -135,6 +184,7 @@ const DbComponent = (props) => {
       oldPortfolio[selectedShare][1] = parseInt(oldPortfolio[selectedShare][1]) + parseInt(quantity);
       props.setPortfolio(oldPortfolio);
       props.setWallet(newWallet.toFixed(2));
+      setSelectedShare(-1);
       setQuantity(0);
     }
     else {
@@ -157,12 +207,14 @@ const DbComponent = (props) => {
         oldPortfolio.splice(selectedShare);
         props.setPortfolio(oldPortfolio);
         props.setWallet(newWallet.toFixed(2));
+        setSelectedShare(-1);
         setQuantity(0);
       }
       else {
         oldPortfolio[selectedShare][1] = parseInt(oldPortfolio[selectedShare][1]) - parseInt(quantity);
         props.setPortfolio(oldPortfolio);
         props.setWallet(newWallet.toFixed(2));
+        setSelectedShare(-1);
         setQuantity(0);
       }
     }
@@ -177,8 +229,11 @@ const DbComponent = (props) => {
         <h4>Remaining Balance: ${props.wallet}</h4>
       )}
       <h3>Portfolio</h3>
-      {props.portfolio != null && props.portfolio.length > 0 && (
-        <button onClick={savePortfolio}>Save Portfolio</button>
+      {sessionStorage.getItem("userid") && props.portfolio != null && (
+        <>
+          <button onClick={resetPortfolio}>Reset Portfolio</button>
+          <button onClick={savePortfolio}>Save Portfolio</button>
+        </>
       )}
       <div className={'grid-container'}>
         <div className={'grid-header'}><strong>Stock</strong></div>
@@ -192,13 +247,13 @@ const DbComponent = (props) => {
               <div className={'grid-item'}>{item[1]}</div>
               <div className={'grid-item'}>${item[2]}</div>
               <div className={'grid-item'}>
-                <input name="buy-sell-stock" key={idx} id={idx} type="radio" value={selectedShare} onChange={handleSelectedShare} />
+                <input name="buy-sell-portfolio" key={idx} id={idx} type="radio" value={selectedShare} onChange={handleSelectedShare} />
               </div>
             </>
           )
         })}
       </div>
-      {selectedShare !== 0 && (
+      {selectedShare >= 0 && (
         <div>
           <label for={"quantity"}>
             <strong>Quantity</strong> <br />

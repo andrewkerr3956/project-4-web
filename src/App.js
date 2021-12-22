@@ -19,10 +19,7 @@ const ApiComponent = (props) => {
       if (parseFloat(props.wallet) >= parseFloat(stockData.value)) {
         let newWallet = parseFloat(props.wallet - stockData.value).toFixed(2);
         props.setWallet(newWallet);
-        let oldPortfolio = props.portfolio;
-        console.log("portfolio props: ", props.portfolio)
-        oldPortfolio.push([stockData.symbol, 1, parseFloat(stockData.value).toFixed(2)]);
-        props.setPortfolio(oldPortfolio);
+        props.setPortfolio([...props.portfolio, [stockData.symbol, 1, parseFloat(stockData.value).toFixed(2)]]);
         setStockData({});
       }
     }
@@ -69,9 +66,9 @@ const ApiComponent = (props) => {
 
 const DbComponent = (props) => {
   const [selectedShare, setSelectedShare] = useState(0);
+  const [quantity, setQuantity] = useState(0);
 
   useEffect(() => {
-    console.log(sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("collection")))
     if (sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("collection"))) {
       fetchPortfolio();
     }
@@ -117,6 +114,63 @@ const DbComponent = (props) => {
     }
   }
 
+  const handleSelectedShare = (event) => {
+    setSelectedShare(event.target.id);
+  }
+
+  const handleQuantity = (event) => {
+    setQuantity(event.target.value);
+  }
+
+  const handleBuy = () => {
+    // newWallet is being set to the user's balance - the third item of the selected share in the user's portfolio 
+    // (the third item is the value of the share).
+    let newWallet = parseFloat(props.wallet) - parseFloat(props.portfolio[selectedShare][2] * quantity);
+    // User can buy more shares as long as their wallet balance would not go below 0.
+    if (newWallet > 0) {
+      let oldPortfolio = [];
+      props.portfolio.map((item, idx) => {
+        oldPortfolio.push(item);
+      });
+      oldPortfolio[selectedShare][1] = parseInt(oldPortfolio[selectedShare][1]) + parseInt(quantity);
+      props.setPortfolio(oldPortfolio);
+      props.setWallet(newWallet.toFixed(2));
+      setQuantity(0);
+    }
+    else {
+      console.log("The balance would go below 0, so it's not allowed.");
+    }
+  }
+
+
+
+  const handleSell = () => {
+    let oldPortfolio = [];
+    console.log("portfolio: ", props.portfolio)
+    props.portfolio.map((item, idx) => {
+      oldPortfolio.push(item);
+    });
+    console.log(oldPortfolio);
+    let newWallet = parseFloat(props.wallet) + parseFloat(props.portfolio[selectedShare][2] * quantity);
+    if (props.portfolio[selectedShare][1] >= quantity) {
+      if (parseInt(oldPortfolio[selectedShare][1]) === 1) {
+        oldPortfolio.splice(selectedShare);
+        props.setPortfolio(oldPortfolio);
+        props.setWallet(newWallet.toFixed(2));
+        setQuantity(0);
+      }
+      else {
+        oldPortfolio[selectedShare][1] = parseInt(oldPortfolio[selectedShare][1]) - parseInt(quantity);
+        props.setPortfolio(oldPortfolio);
+        props.setWallet(newWallet.toFixed(2));
+        setQuantity(0);
+      }
+    }
+    else {
+      console.log("You're trying to sell more than you have!");
+    }
+  }
+
   return (
     <>
       {sessionStorage.length > 0 && (
@@ -138,7 +192,7 @@ const DbComponent = (props) => {
               <div className={'grid-item'}>{item[1]}</div>
               <div className={'grid-item'}>${item[2]}</div>
               <div className={'grid-item'}>
-                <input name="buy-sell-stock" key={idx} type="radio"></input>
+                <input name="buy-sell-stock" key={idx} id={idx} type="radio" value={selectedShare} onChange={handleSelectedShare} />
               </div>
             </>
           )
@@ -146,11 +200,13 @@ const DbComponent = (props) => {
       </div>
       {selectedShare !== 0 && (
         <div>
-          <strong>Quantity</strong>
-          {/* Quantity will need to be built into here */}
-          <input type="number" min={0} max={0}></input>
-          <button>Buy</button>
-          <button>Sell</button>
+          <label for={"quantity"}>
+            <strong>Quantity</strong> <br />
+            <div></div>
+            <input name="quantity" type="number" min={0} max={5} value={quantity} onChange={handleQuantity} />
+          </label> <br />
+          <button onClick={handleBuy}>Buy</button>
+          <button onClick={handleSell}>Sell</button>
         </div>
       )}
 
@@ -168,12 +224,14 @@ function App() {
 
   useEffect(() => {
     if (sessionStorage.getItem("userid")) {
+      console.log("PORTFOLIO EFFECT CALLED")
       sessionStorage.setItem("collection", [JSON.stringify(portfolio)]);
     }
   }, [portfolio]);
 
   useEffect(() => {
     if (sessionStorage.getItem("userid")) {
+      console.log("WALLET EFFECT CALLED")
       sessionStorage.setItem("wallet", wallet);
     }
   }, [wallet]);

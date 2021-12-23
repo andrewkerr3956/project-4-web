@@ -23,6 +23,7 @@ const ApiComponent = (props) => {
     if (sessionStorage.length > 0 && quantity > 0) {
       let newWallet = parseFloat(props.wallet - (stockData.value * quantity)).toFixed(2);
       let oldPortfolio = props.portfolio.map((item, idx) => {
+        // Check to see if the symbol is already inside of the user's porfolio.
         if (item.includes(stockData.symbol)) {
           return true;
         }
@@ -63,6 +64,7 @@ const ApiComponent = (props) => {
   const fetchChart = async (symbol) => {
     let chart = await fetch(`http://localhost:3000/api/chart/${symbol}`);
     chart = await chart.json();
+    // The server responds with a url for an image, we are taking the url and concatenating it onto the src of an img element that exists on the page.
     document.getElementById("chart-img").setAttribute('src', chart.img);
     
   }
@@ -106,14 +108,16 @@ const DbComponent = (props) => {
   const [quantity, setQuantity] = useState(0);
 
   useEffect(() => {
-    if (sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("collection"))) {
+    // Only fetch portfolio if a user is actually logged in and no collection OR wallet item exists.
+    if (sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("wallet"))) {
       fetchPortfolio();
     }
-  }, []);
+  });
 
   useEffect(() => {
     if (selectedShare === -1) {
       let resetRadio = document.getElementsByName("buy-sell-portfolio");
+      // The for loop will go through each element in the buy-sell-portfolio list and uncheck all radio buttons.
       for(let i = 0; i < resetRadio.length; i++) {
         resetRadio[i].checked = false;
       }
@@ -123,6 +127,7 @@ const DbComponent = (props) => {
   const fetchPortfolio = async () => {
     let fetchPortfolio = await fetch(`http://localhost:3000/api/portfolio/${sessionStorage.getItem("userid")}`);
     fetchPortfolio = await fetchPortfolio.json();
+    // Only if the sessionStorage for the collection and wallet items don't exist, then we use the portfolio from the database.
     if (!sessionStorage.getItem("collection")) {
       if (fetchPortfolio.results[0].collection == null) {
         props.setPortfolio([]);
@@ -181,7 +186,7 @@ const DbComponent = (props) => {
     if (newWallet > 0) {
       let oldPortfolio = [];
       props.portfolio.map((item, idx) => {
-        oldPortfolio.push(item);
+        return oldPortfolio.push(item);
       });
       oldPortfolio[selectedShare][1] = parseInt(oldPortfolio[selectedShare][1]) + parseInt(quantity);
       props.setPortfolio(oldPortfolio);
@@ -200,11 +205,13 @@ const DbComponent = (props) => {
     let oldPortfolio = [];
     console.log("portfolio: ", props.portfolio)
     props.portfolio.map((item, idx) => {
-      oldPortfolio.push(item);
+      return oldPortfolio.push(item);
     });
     console.log(oldPortfolio);
+    // Checking to make sure that you can only sell what you have
     let newWallet = parseFloat(props.wallet) + parseFloat(props.portfolio[selectedShare][2] * quantity);
     if (props.portfolio[selectedShare][1] >= quantity) {
+      // If the quantity of the share would go to 0, it will be removed from the portfolio.
       if (parseInt(oldPortfolio[selectedShare][1]) === 1) {
         oldPortfolio.splice(selectedShare, 1);
         props.setPortfolio(oldPortfolio);
@@ -275,8 +282,9 @@ function App() {
   const [registerDisplay, setRegisterDisplay] = useState(false);
   const [username, setUserName] = useState("");
   const [password, setPassword] = useState("");
+  // Portfolio initializes at [] if nothing is in the sessionStorage.
   const [portfolio, setPortfolio] = useState(JSON.parse(sessionStorage.getItem("collection")) || []);
-  // Wallet state intializes at 3000 since that is the default set in the database.
+  // Wallet state intializes at 3000 if nothing is in the sessionStorage since that is the default set in the database.
   const [wallet, setWallet] = useState(sessionStorage.getItem("wallet") || 3000);
 
   useEffect(() => {
@@ -298,7 +306,7 @@ function App() {
       setRegisterDisplay(false);
     }
     let newDisplay = !loginDisplay;
-    setLoginDisplay(newDisplay);
+    setLoginDisplay(newDisplay); // Set the login display to the opposite of the current value, or if register display is active, hide the login display.
   }
 
   const registerBox = () => {

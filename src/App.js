@@ -49,7 +49,6 @@ const ApiComponent = (props) => {
 
   const fetchSearch = async () => {
     let symbol = search;
-    console.log(`http://localhost:3000/api/search/${symbol}`)
     let data = await fetch(`http://localhost:3000/api/search/${symbol}`);
     data = await data.json();
     if (data.error) {
@@ -57,12 +56,13 @@ const ApiComponent = (props) => {
     }
     else {
       setStockData({ symbol: symbol, value: data.data.price.toFixed(2) });
+      console.log("history: ", data.history);
       fetchChart(symbol);
     }
   }
 
   const fetchChart = async (symbol) => {
-    let chart = await fetch(`http://localhost:3000/api/chart?symbol=${symbol}`);
+    let chart = await fetch(`http://localhost:3000/api/chart/${symbol}`);
     chart = await chart.json();
     document.getElementById("chart-img").setAttribute('src', chart.img);
     

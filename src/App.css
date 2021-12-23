@@ -111,6 +111,9 @@ html, body {
 }
 
 @media screen and (max-width: 768px) {
+  body, html {
+    overflow-y: auto;
+  }
   .api-container {
     width: 100%;
   }

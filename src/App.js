@@ -149,6 +149,7 @@ const DbComponent = (props) => {
   const resetPortfolio = () => {
     props.setPortfolio([]);
     props.setWallet(3000);
+    props.setTransactions([]);
   }
 
   const savePortfolio = async () => {
@@ -158,7 +159,7 @@ const DbComponent = (props) => {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ portfolioId: portfolioid, portfolioData: props.portfolio, currentWallet: props.wallet })
+      body: JSON.stringify({ portfolioId: portfolioid, portfolioData: props.portfolio, currentWallet: props.wallet, transactions: props.transactions })
 
     });
     saveNewPortfolio = await saveNewPortfolio.json();
@@ -176,6 +177,10 @@ const DbComponent = (props) => {
 
   const handleQuantity = (event) => {
     setQuantity(event.target.value);
+  }
+
+  const viewHistory = () => {
+    // Display the transaction history
   }
 
   const handleBuy = () => {
@@ -212,7 +217,7 @@ const DbComponent = (props) => {
     let newWallet = parseFloat(props.wallet) + parseFloat(props.portfolio[selectedShare][2] * quantity);
     if (props.portfolio[selectedShare][1] >= quantity) {
       // If the quantity of the share would go to 0, it will be removed from the portfolio.
-      if (parseInt(oldPortfolio[selectedShare][1]) === 1) {
+      if (parseInt(oldPortfolio[selectedShare][1]) - quantity === 0) {
         oldPortfolio.splice(selectedShare, 1);
         props.setPortfolio(oldPortfolio);
         props.setWallet(newWallet.toFixed(2));
@@ -240,6 +245,7 @@ const DbComponent = (props) => {
       <h3>Portfolio</h3>
       {sessionStorage.getItem("userid") && props.portfolio != null && (
         <>
+          <button onClick={viewHistory}>History View</button> <br />
           <button onClick={resetPortfolio}>Reset Portfolio</button>
           <button onClick={savePortfolio}>Save Portfolio</button>
         </>
@@ -286,6 +292,8 @@ function App() {
   const [portfolio, setPortfolio] = useState(JSON.parse(sessionStorage.getItem("collection")) || []);
   // Wallet state intializes at 3000 if nothing is in the sessionStorage since that is the default set in the database.
   const [wallet, setWallet] = useState(sessionStorage.getItem("wallet") || 3000);
+  // Transactions initializes at [] if nothing is in the sessionStorage.
+  const [transactions, setTransactions] = useState(sessionStorage.getItem("transactions") || []);
 
   useEffect(() => {
     if (sessionStorage.getItem("userid")) {
@@ -300,6 +308,13 @@ function App() {
       sessionStorage.setItem("wallet", wallet);
     }
   }, [wallet]);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("userid")) {
+      console.log("TRANSACTION EFFECT CALLED")
+      sessionStorage.setItem("transactions", [JSON.stringify(transactions)]);
+    }
+  }, [transactions]);
 
   const loginBox = () => {
     if (registerDisplay) {
@@ -429,10 +444,10 @@ function App() {
       <main>
         <div className={"flex-container"}>
           <div className={"api-container"}>
-            <ApiComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} />
+            <ApiComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} transactions={transactions} setTransactions={setTransactions} />
           </div>
           <div className={"database-container"}>
-            <DbComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} />
+            <DbComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} transactions={transactions} setTransactions={setTransactions}/>
           </div>
         </div>
       </main>

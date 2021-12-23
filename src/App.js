@@ -31,7 +31,6 @@ const ApiComponent = (props) => {
         }
       });
       if (newWallet >= 0) {
-        console.log("oldportfolio check: ", oldPortfolio)
         if (oldPortfolio.includes(true)) {
           setQuantity(0)
           return alert("This stock already exists in your portfolio! Buy more shares from your portfolio.");
@@ -90,7 +89,7 @@ const ApiComponent = (props) => {
               <br />
               <div>Quantity</div> <br />
               <input type="number" min={0} max={5} value={quantity} onChange={handleQuantity} /> <p />
-              <button onClick={handleBuy}>Buy</button>
+              <button style={{marginBottom: "15px"}} onClick={handleBuy}>Buy</button>
             </div>
           )}
         </div>
@@ -114,7 +113,10 @@ const DbComponent = (props) => {
 
   useEffect(() => {
     if (selectedShare === -1) {
-      console.log(document.getElementsByName("buy-sell-portfolio").values)
+      let resetRadio = document.getElementsByName("buy-sell-portfolio");
+      for(let i = 0; i < resetRadio.length; i++) {
+        resetRadio[i].checked = false;
+      }
     }
   }, [selectedShare])
 
@@ -204,7 +206,7 @@ const DbComponent = (props) => {
     let newWallet = parseFloat(props.wallet) + parseFloat(props.portfolio[selectedShare][2] * quantity);
     if (props.portfolio[selectedShare][1] >= quantity) {
       if (parseInt(oldPortfolio[selectedShare][1]) === 1) {
-        oldPortfolio.splice(selectedShare);
+        oldPortfolio.splice(selectedShare, 1);
         props.setPortfolio(oldPortfolio);
         props.setWallet(newWallet.toFixed(2));
         setSelectedShare(-1);

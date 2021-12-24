@@ -297,7 +297,7 @@ const DbComponent = (props) => {
       </div>
       {sessionStorage.length > 0 && historyView === "none" && (
         <>
-          <h4>Remaining Balance: ${props.wallet}</h4>
+          <h4>Remaining Balance: ${parseFloat(props.wallet).toFixed(2)}</h4>
           <h3>Portfolio</h3>
         </>
       )}

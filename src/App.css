@@ -143,6 +143,11 @@ html, body {
   margin-top: 15px;
 }
 
+#transaction-summary {
+  overflow-y: auto;
+  max-height: 20vh;
+}
+
 .database-container {
   background-color: var(--database-cell-color, blue);
   width: 40%;

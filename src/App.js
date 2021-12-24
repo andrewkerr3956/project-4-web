@@ -21,7 +21,7 @@ const ApiComponent = (props) => {
   const handleBuy = () => {
     console.log("Activated handle buy!")
     if (sessionStorage.length > 0 && quantity > 0) {
-      let newWallet = parseFloat(props.wallet - (stockData.value * quantity)).toFixed(2);
+      let newWallet = parseFloat(props.wallet) - parseFloat(stockData.value * quantity).toFixed(2);
       let oldPortfolio = props.portfolio.map((item, idx) => {
         // Check to see if the symbol is already inside of the user's porfolio.
         if (item.includes(stockData.symbol)) {
@@ -42,7 +42,8 @@ const ApiComponent = (props) => {
           setQuantity(0)
           setStockData({});
         }
-
+        console.log(`props.setTransactions([...props.transactions, ['Bought ${quantity} shares of ${stockData.symbol} - New balance: $${newWallet}', ${newWallet}]])`)
+        props.setTransactions([...props.transactions, [`Bought ${quantity} shares of ${stockData.symbol} - New balance: $${newWallet.toFixed(2)}`, parseFloat(newWallet.toFixed(2))]]);
       }
     }
   }
@@ -52,12 +53,13 @@ const ApiComponent = (props) => {
     let data = await fetch(`http://localhost:3000/api/search/${symbol}`);
     data = await data.json();
     if (data.error) {
+      setSearch("");
       return alert("Data for this symbol could not be found.");
     }
     else {
       setStockData({ symbol: symbol, value: data.data.price.toFixed(2) });
-      console.log("history: ", data.history);
       fetchChart(symbol);
+      setSearch("");
     }
   }
 
@@ -66,7 +68,7 @@ const ApiComponent = (props) => {
     chart = await chart.json();
     // The server responds with a url for an image, we are taking the url and concatenating it onto the src of an img element that exists on the page.
     document.getElementById("chart-img").setAttribute('src', chart.img);
-    
+
   }
 
   return (
@@ -91,7 +93,7 @@ const ApiComponent = (props) => {
               <br />
               <div>Quantity</div> <br />
               <input type="number" min={0} max={5} value={quantity} onChange={handleQuantity} /> <p />
-              <button style={{marginBottom: "15px"}} onClick={handleBuy}>Buy</button>
+              <button style={{ marginBottom: "15px" }} onClick={handleBuy}>Buy</button>
             </div>
           )}
         </div>
@@ -106,19 +108,27 @@ const DbComponent = (props) => {
   check since we don't want quantity displayed unless something is selected. */
   const [selectedShare, setSelectedShare] = useState(-1);
   const [quantity, setQuantity] = useState(0);
+  const [historyView, setHistoryView] = useState("none"); // Manipulate div style to either hide or show the history view.
 
   useEffect(() => {
-    // Only fetch portfolio if a user is actually logged in and no collection OR wallet item exists.
-    if (sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("wallet"))) {
+    // Only fetch portfolio if a user is actually logged in and no collection, wallet, OR transactions exist in the sessionStorage.
+    if (sessionStorage.getItem("userid") && (!sessionStorage.getItem("collection") || !sessionStorage.getItem("wallet") || !sessionStorage.getItem("transactions"))) {
       fetchPortfolio();
     }
   });
 
   useEffect(() => {
+    // Clear the div when the user clicks off of the history view
+    if(historyView === "none") {
+      document.getElementById('transaction-summary').innerHTML = "";
+    }
+  }, [historyView])
+
+  useEffect(() => {
     if (selectedShare === -1) {
       let resetRadio = document.getElementsByName("buy-sell-portfolio");
       // The for loop will go through each element in the buy-sell-portfolio list and uncheck all radio buttons.
-      for(let i = 0; i < resetRadio.length; i++) {
+      for (let i = 0; i < resetRadio.length; i++) {
         resetRadio[i].checked = false;
       }
     }
@@ -142,6 +152,14 @@ const DbComponent = (props) => {
       }
       else {
         props.setWallet(fetchPortfolio.results[0].wallet)
+      }
+    }
+    if (!sessionStorage.getItem("transactions")) {
+      if (fetchPortfolio.results[0].transactions == null) {
+        props.setTransactions([]);
+      }
+      else {
+        props.setTransactions(fetchPortfolio.results[0].transactions);
       }
     }
   }
@@ -179,8 +197,38 @@ const DbComponent = (props) => {
     setQuantity(event.target.value);
   }
 
-  const viewHistory = () => {
-    // Display the transaction history
+  const viewHistory = async () => {
+    console.log(props.transactions);
+    // Checks to make sure that transactions is an array, and there is at least 2 transactions inside of it.
+    if (historyView === "none" && props.transactions.length && props.transactions.length > 1) {
+      setHistoryView("block");
+      let transactionHistory = [];
+      props.transactions.map((item, idx) => {
+        return transactionHistory.push(item[0]);
+      });
+      let balanceHistory = [];
+      props.transactions.map((item, idx) => {
+        return balanceHistory.push(item[1]);
+      });
+      // Display the transaction history
+      let chart = await fetch(`http://localhost:3000/api/portfolio/view/`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ transactions: balanceHistory })
+      });
+      chart = await chart.json();
+      document.getElementById('transaction-img').setAttribute('src', chart.img);
+      transactionHistory.map((item) => {
+        return document.getElementById('transaction-summary').innerHTML += 
+        `<p>${item.toString()}</p>`;
+      })
+
+    }
+    else {
+      alert("You need to make transactions first!");
+    }
   }
 
   const handleBuy = () => {
@@ -197,7 +245,8 @@ const DbComponent = (props) => {
       props.setPortfolio(oldPortfolio);
       props.setWallet(newWallet.toFixed(2));
       setSelectedShare(-1);
-      setQuantity(0);
+      setQuantity(0);                               
+      props.setTransactions([...props.transactions, [`Bought ${quantity} more shares of ${props.portfolio[selectedShare][0]} - New balance: $${newWallet.toFixed(2)}`, parseFloat(newWallet.toFixed(2))]])
     }
     else {
       console.log("The balance would go below 0, so it's not allowed.");
@@ -223,6 +272,7 @@ const DbComponent = (props) => {
         props.setWallet(newWallet.toFixed(2));
         setSelectedShare(-1);
         setQuantity(0);
+        props.setTransactions([...props.transactions, [`Sold the remaining ${quantity} shares of ${props.portfolio[selectedShare][0]} - New balance: $${newWallet.toFixed(2)}`, parseFloat(newWallet.toFixed(2))]]);
       }
       else {
         oldPortfolio[selectedShare][1] = parseInt(oldPortfolio[selectedShare][1]) - parseInt(quantity);
@@ -230,6 +280,7 @@ const DbComponent = (props) => {
         props.setWallet(newWallet.toFixed(2));
         setSelectedShare(-1);
         setQuantity(0);
+        props.setTransactions([...props.transactions, [`Sold ${quantity} shares of ${props.portfolio[selectedShare][0]} - New balance: $${newWallet.toFixed(2)}`, parseFloat(newWallet.toFixed(2))]]);
       }
     }
     else {
@@ -239,35 +290,45 @@ const DbComponent = (props) => {
 
   return (
     <>
-      {sessionStorage.length > 0 && (
-        <h4>Remaining Balance: ${props.wallet}</h4>
+      <div id="transaction-container" style={{ display: historyView,  textAlign: "center" }}>
+        <button onClick={() => setHistoryView("none")}>Return to Portfolio</button>
+        <img style={{ display: "inherit", margin: "0 auto", overflowX: "auto" }} id="transaction-img" alt="Transaction Chart" />
+        <div id="transaction-summary"></div>
+      </div>
+      {sessionStorage.length > 0 && historyView === "none" && (
+        <>
+          <h4>Remaining Balance: ${props.wallet}</h4>
+          <h3>Portfolio</h3>
+        </>
       )}
-      <h3>Portfolio</h3>
-      {sessionStorage.getItem("userid") && props.portfolio != null && (
+      
+      {sessionStorage.getItem("userid") && historyView === "none" && props.portfolio != null && (
         <>
           <button onClick={viewHistory}>History View</button> <br />
           <button onClick={resetPortfolio}>Reset Portfolio</button>
           <button onClick={savePortfolio}>Save Portfolio</button>
         </>
       )}
-      <div className={'grid-container'}>
-        <div className={'grid-header'}><strong>Stock</strong></div>
-        <div className={'grid-header'}><strong>Quantity</strong></div>
-        <div className={'grid-header'}><strong>Value</strong></div>
-        <div className={'grid-header'}><strong>Buy/Sell</strong></div>
-        {props.portfolio != null && props.portfolio !== [] && props.portfolio.length > 0 && props.portfolio.map((item, idx) => {
-          return (
-            <>
-              <div className={'grid-item'}>{item[0]}</div>
-              <div className={'grid-item'}>{item[1]}</div>
-              <div className={'grid-item'}>${item[2]}</div>
-              <div className={'grid-item'}>
-                <input name="buy-sell-portfolio" key={idx} id={idx} type="radio" value={selectedShare} onChange={handleSelectedShare} />
-              </div>
-            </>
-          )
-        })}
-      </div>
+      {props.portfolio != null && props.portfolio !== [] && props.portfolio.length > 0 && historyView === "none" && (
+        <div className={'grid-container'}>
+          <div className={'grid-header'}><strong>Stock</strong></div>
+          <div className={'grid-header'}><strong>Quantity</strong></div>
+          <div className={'grid-header'}><strong>Value</strong></div>
+          <div className={'grid-header'}><strong>Buy/Sell</strong></div>
+          {props.portfolio.map((item, idx) => {
+            return (
+              <>
+                <div className={'grid-item'}>{item[0]}</div>
+                <div className={'grid-item'}>{item[1]}</div>
+                <div className={'grid-item'}>${item[2]}</div>
+                <div className={'grid-item'}>
+                  <input name="buy-sell-portfolio" key={idx} id={idx} type="radio" value={selectedShare} onChange={handleSelectedShare} />
+                </div>
+              </>
+            )
+          })}
+        </div>
+      )}
       {selectedShare >= 0 && (
         <div>
           <label for={"quantity"}>
@@ -293,7 +354,7 @@ function App() {
   // Wallet state intializes at 3000 if nothing is in the sessionStorage since that is the default set in the database.
   const [wallet, setWallet] = useState(sessionStorage.getItem("wallet") || 3000);
   // Transactions initializes at [] if nothing is in the sessionStorage.
-  const [transactions, setTransactions] = useState(sessionStorage.getItem("transactions") || []);
+  const [transactions, setTransactions] = useState(JSON.parse(sessionStorage.getItem("transactions")) || []);
 
   useEffect(() => {
     if (sessionStorage.getItem("userid")) {
@@ -369,6 +430,13 @@ function App() {
         setPortfolio(login.results[0].collection);
       }
       setWallet(login.results[0].wallet);
+      // Check if transactions is null
+      if (login.results[0].transactions == null) {
+        setTransactions([]);
+      }
+      else {
+        setTransactions(login.results[0].transactions);
+      }
       window.location.reload();
     }
   }
@@ -447,7 +515,7 @@ function App() {
             <ApiComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} transactions={transactions} setTransactions={setTransactions} />
           </div>
           <div className={"database-container"}>
-            <DbComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} transactions={transactions} setTransactions={setTransactions}/>
+            <DbComponent portfolio={portfolio} setPortfolio={setPortfolio} wallet={wallet} setWallet={setWallet} transactions={transactions} setTransactions={setTransactions} />
           </div>
         </div>
       </main>

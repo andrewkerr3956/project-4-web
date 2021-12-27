@@ -1,8 +1,11 @@
-html, body {
+html {
+  overflow: hidden;
+}
+
+body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
 }
 
 :root {
@@ -111,14 +114,16 @@ html, body {
 }
 
 @media screen and (max-width: 768px) {
-  body, html {
-    overflow-y: auto;
+  html {
+    overflow: auto;
   }
   .api-container {
     width: 100%;
+    flex-basis: 100%;
   }
   .database-container {
-    width: 100% !important;
+    width: 100%;
+    flex-basis: 100%;
   }
 }
 
@@ -141,6 +146,11 @@ html, body {
   font-size: 20px;
   text-align: center;
   margin-top: 15px;
+}
+
+#transaction-summary {
+  overflow-y: auto;
+  max-height: 20vh;
 }
 
 .database-container {
